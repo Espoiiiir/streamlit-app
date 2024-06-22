@@ -2,6 +2,10 @@ import streamlit as st
 from PIL import Image
 import torch
 from torchvision import models, transforms
+import requests
+
+import streamlit as st
+from PIL import Image
 
 st.title("Image Component Analysis")
 
@@ -9,18 +13,28 @@ st.title("Image Component Analysis")
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption='Uploaded Image.', use_column_width=True)
+    try:
+        image = Image.open(uploaded_file)
+        st.image(image, caption='Uploaded Image.', use_column_width=True)
+        st.write("Image uploaded successfully!")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+else:
+    st.write("Please upload an image file.")
 
 # Load a pre-trained model with the updated weights parameter
-model = models.detection.fasterrcnn_resnet50_fpn(weights=models.detection.FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
+try:
+    model = models.detection.fasterrcnn_resnet50_fpn(weights=models.detection.FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
+except requests.exceptions.RequestException as e:
+    st.error("Failed to load the model weights. Check your internet connection.")
+    raise e
+
 model.eval()
 
 # Define the image transformations
 transform = transforms.Compose([
     transforms.ToTensor(),
 ])
-
 
 def analyze_image(image):
     # Transform the image and make predictions
@@ -32,10 +46,9 @@ def analyze_image(image):
     labels = outputs[0]['labels']
     return labels
 
-
 # Map label indices to names (COCO dataset labels)
 COCO_INSTANCE_CATEGORY_NAMES = [
-    '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
+    '_background_', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
     'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
     'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
     'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack', 'umbrella',
@@ -60,4 +73,3 @@ if st.button("Analyse Image"):
             st.write(name)
     else:
         st.write("Please upload an image first.")
-
